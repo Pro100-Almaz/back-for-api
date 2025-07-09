@@ -3,158 +3,124 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample
 
-from .models import UserProfile
 from .serializers import (
-    UserSerializer, UserRegistrationSerializer, UserListSerializer,
-    AdminUserSerializer, ToolCreatorSerializer, ClientSerializer
+    ToolCreatorSerializer, ClientSerializer,
+    ClientRegistrationSerializer, ToolCreatorRegistrationSerializer, AdminRegistrationSerializer
 )
-from .permissions import (
-    IsAdmin, IsToolCreator, IsClient, IsOwnerOrAdmin,
-    CanManageUsers, CanBrowseTools, CanUseTools
-)
+from .permissions import IsToolCreator, IsClient, IsAdmin
 
 User = get_user_model()
 
 
-class UserRegistrationView(generics.CreateAPIView):
-    """View for user registration"""
+@extend_schema_view(
+    post=extend_schema(
+        summary="Register a new client",
+        description="Create a new client account with basic information",
+        tags=["Registration"],
+        examples=[
+            OpenApiExample(
+                "Client Registration",
+                value={
+                    "email": "client@example.com",
+                    "username": "clientuser",
+                    "password": "securepassword123",
+                    "password_confirm": "securepassword123",
+                    "first_name": "John",
+                    "last_name": "Doe",
+                    "phone_number": "+1234567890",
+                    "company_name": "Example Corp",
+                    "bio": "I'm a client looking to use services"
+                }
+            )
+        ]
+    )
+)
+class ClientRegistrationView(generics.CreateAPIView):
+    """View for client registration"""
     queryset = User.objects.all()
-    serializer_class = UserRegistrationSerializer
+    serializer_class = ClientRegistrationSerializer
     permission_classes = [AllowAny]
 
 
-class UserViewSet(viewsets.ModelViewSet):
-    """ViewSet for user management"""
+@extend_schema_view(
+    post=extend_schema(
+        summary="Register a new tool creator",
+        description="Create a new tool creator account with basic information",
+        tags=["Registration"],
+        examples=[
+            OpenApiExample(
+                "Tool Creator Registration",
+                value={
+                    "email": "creator@example.com",
+                    "username": "toolcreator",
+                    "password": "securepassword123",
+                    "password_confirm": "securepassword123",
+                    "first_name": "Jane",
+                    "last_name": "Smith",
+                    "phone_number": "+1234567890",
+                    "company_name": "Tool Creator Inc",
+                    "bio": "I create amazing content for the platform"
+                }
+            )
+        ]
+    )
+)
+class ToolCreatorRegistrationView(generics.CreateAPIView):
+    """View for tool creator registration"""
     queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [IsAuthenticated]
-    
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return UserListSerializer
-        elif self.action in ['create', 'update', 'partial_update']:
-            if self.request.user.is_admin:
-                return AdminUserSerializer
-            return UserSerializer
-        return UserSerializer
-    
-    def get_permissions(self):
-        if self.action == 'create':
-            return [AllowAny()]
-        elif self.action in ['list', 'destroy']:
-            return [CanManageUsers()]
-        elif self.action in ['update', 'partial_update']:
-            return [IsOwnerOrAdmin()]
-        return [IsAuthenticated()]
-    
-    def get_queryset(self):
-        user = self.request.user
-        
-        # Admins can see all users
-        if user.is_admin:
-            return User.objects.all()
-        
-        # Tool creators can see their own data and clients
-        if user.is_tool_creator:
-            return User.objects.filter(
-                Q(id=user.id) | Q(role=User.Role.CLIENT)
-            )
-        
-        # Clients can only see their own data
-        return User.objects.filter(id=user.id)
-    
-    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
-    def me(self, request):
-        """Get current user's profile"""
-        serializer = self.get_serializer(request.user)
-        return Response(serializer.data)
-    
-    @action(detail=False, methods=['put', 'patch'], permission_classes=[IsAuthenticated])
-    def update_me(self, request):
-        """Update current user's profile"""
-        serializer = self.get_serializer(request.user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-    @action(detail=False, methods=['get'], permission_classes=[IsAdmin])
-    def clients(self, request):
-        """Get all clients (admin only)"""
-        clients = User.objects.filter(role=User.Role.CLIENT)
-        serializer = ClientSerializer(clients, many=True)
-        return Response(serializer.data)
-    
-    @action(detail=False, methods=['get'], permission_classes=[IsAdmin])
-    def tool_creators(self, request):
-        """Get all tool creators (admin only)"""
-        tool_creators = User.objects.filter(role=User.Role.TOOL_CREATOR)
-        serializer = ToolCreatorSerializer(tool_creators, many=True)
-        return Response(serializer.data)
-    
-    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
-    def change_role(self, request, pk=None):
-        """Change user role (admin only)"""
-        user = self.get_object()
-        new_role = request.data.get('role')
-        
-        if new_role not in [choice[0] for choice in User.Role.choices]:
-            return Response(
-                {'error': 'Invalid role'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        user.role = new_role
-        user.save()
-        
-        serializer = self.get_serializer(user)
-        return Response(serializer.data)
-    
-    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
-    def add_points(self, request, pk=None):
-        """Add points to client (admin only)"""
-        user = self.get_object()
-        points = request.data.get('points', 0)
-        
-        if user.role != User.Role.CLIENT:
-            return Response(
-                {'error': 'Can only add points to clients'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        user.points_balance += points
-        user.save()
-        
-        serializer = ClientSerializer(user)
-        return Response(serializer.data)
-    
-    @action(detail=True, methods=['post'], permission_classes=[IsAdmin])
-    def deduct_points(self, request, pk=None):
-        """Deduct points from client (admin only)"""
-        user = self.get_object()
-        points = request.data.get('points', 0)
-        
-        if user.role != User.Role.CLIENT:
-            return Response(
-                {'error': 'Can only deduct points from clients'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        if user.points_balance < points:
-            return Response(
-                {'error': 'Insufficient points'}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        user.points_balance -= points
-        user.save()
-        
-        serializer = ClientSerializer(user)
-        return Response(serializer.data)
+    serializer_class = ToolCreatorRegistrationSerializer
+    permission_classes = [AllowAny]
 
 
+@extend_schema_view(
+    post=extend_schema(
+        summary="Register a new admin",
+        description="Create a new admin account (admin only)",
+        tags=["Registration"],
+        examples=[
+            OpenApiExample(
+                "Admin Registration",
+                value={
+                    "email": "admin@example.com",
+                    "username": "adminuser",
+                    "password": "securepassword123",
+                    "password_confirm": "securepassword123",
+                    "first_name": "Admin",
+                    "last_name": "User",
+                    "phone_number": "+1234567890",
+                    "company_name": "Platform Admin",
+                    "bio": "Platform administrator"
+                }
+            )
+        ]
+    )
+)
+class AdminRegistrationView(generics.CreateAPIView):
+    """View for admin registration (admin only)"""
+    queryset = User.objects.all()
+    serializer_class = AdminRegistrationSerializer
+    permission_classes = [IsAdmin]
+
+
+@extend_schema_view(
+    list=extend_schema(
+        summary="List tool creators",
+        description="Get a list of tool creators",
+        tags=["Tool Creators"]
+    ),
+    retrieve=extend_schema(
+        summary="Get tool creator details",
+        description="Get detailed information about a specific tool creator",
+        tags=["Tool Creators"]
+    ),
+    revenue_stats=extend_schema(
+        summary="Get revenue statistics",
+        description="Get revenue statistics for tool creator",
+        tags=["Tool Creators"]
+    )
+)
 class ToolCreatorViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for tool creator specific operations"""
     serializer_class = ToolCreatorSerializer
@@ -184,6 +150,23 @@ class ToolCreatorViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(data)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="List clients",
+        description="Get a list of clients",
+        tags=["Clients"]
+    ),
+    retrieve=extend_schema(
+        summary="Get client details",
+        description="Get detailed information about a specific client",
+        tags=["Clients"]
+    ),
+    points_balance=extend_schema(
+        summary="Get points balance",
+        description="Get current points balance for client",
+        tags=["Clients"]
+    )
+)
 class ClientViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for client specific operations"""
     serializer_class = ClientSerializer
@@ -207,6 +190,6 @@ class ClientViewSet(viewsets.ReadOnlyModelViewSet):
         
         data = {
             'points_balance': user.points_balance,
-            'can_use_tools': user.can_use_tools(),
+            'can_use_services': user.can_use_services(),
         }
         return Response(data) 

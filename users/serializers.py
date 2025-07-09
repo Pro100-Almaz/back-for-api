@@ -93,6 +93,120 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
+class ClientRegistrationSerializer(serializers.ModelSerializer):
+    """Serializer for client registration"""
+    password = serializers.CharField(write_only=True, min_length=8)
+    password_confirm = serializers.CharField(write_only=True)
+    profile = UserProfileSerializer(required=False)
+    
+    class Meta:
+        model = User
+        fields = [
+            'email', 'username', 'first_name', 'last_name', 'password',
+            'password_confirm', 'phone_number', 'company_name', 'bio',
+            'profile'
+        ]
+    
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError("Passwords don't match")
+        return attrs
+    
+    def create(self, validated_data):
+        validated_data.pop('password_confirm')
+        profile_data = validated_data.pop('profile', None)
+        
+        # Create user with CLIENT role
+        user = User.objects.create_user(
+            **validated_data,
+            role=User.Role.CLIENT
+        )
+        
+        # Create profile
+        if profile_data:
+            UserProfile.objects.create(user=user, **profile_data)
+        else:
+            UserProfile.objects.create(user=user)
+        
+        return user
+
+
+class ToolCreatorRegistrationSerializer(serializers.ModelSerializer):
+    """Serializer for tool creator registration"""
+    password = serializers.CharField(write_only=True, min_length=8)
+    password_confirm = serializers.CharField(write_only=True)
+    profile = UserProfileSerializer(required=False)
+    
+    class Meta:
+        model = User
+        fields = [
+            'email', 'username', 'first_name', 'last_name', 'password',
+            'password_confirm', 'phone_number', 'company_name', 'bio',
+            'profile'
+        ]
+    
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError("Passwords don't match")
+        return attrs
+    
+    def create(self, validated_data):
+        validated_data.pop('password_confirm')
+        profile_data = validated_data.pop('profile', None)
+        
+        # Create user with TOOL_CREATOR role
+        user = User.objects.create_user(
+            **validated_data,
+            role=User.Role.TOOL_CREATOR
+        )
+        
+        # Create profile
+        if profile_data:
+            UserProfile.objects.create(user=user, **profile_data)
+        else:
+            UserProfile.objects.create(user=user)
+        
+        return user
+
+
+class AdminRegistrationSerializer(serializers.ModelSerializer):
+    """Serializer for admin registration (admin only)"""
+    password = serializers.CharField(write_only=True, min_length=8)
+    password_confirm = serializers.CharField(write_only=True)
+    profile = UserProfileSerializer(required=False)
+    
+    class Meta:
+        model = User
+        fields = [
+            'email', 'username', 'first_name', 'last_name', 'password',
+            'password_confirm', 'phone_number', 'company_name', 'bio',
+            'profile'
+        ]
+    
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError("Passwords don't match")
+        return attrs
+    
+    def create(self, validated_data):
+        validated_data.pop('password_confirm')
+        profile_data = validated_data.pop('profile', None)
+        
+        # Create user with ADMIN role
+        user = User.objects.create_user(
+            **validated_data,
+            role=User.Role.ADMIN
+        )
+        
+        # Create profile
+        if profile_data:
+            UserProfile.objects.create(user=user, **profile_data)
+        else:
+            UserProfile.objects.create(user=user)
+        
+        return user
+
+
 class UserListSerializer(serializers.ModelSerializer):
     """Serializer for listing users with basic info"""
     class Meta:

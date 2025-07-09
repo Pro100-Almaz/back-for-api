@@ -1,26 +1,25 @@
-# Django REST Framework SaaS Platform
+# Django REST Framework User Management Platform
 
-A comprehensive Django REST Framework project with JWT authentication and role-based authorization for a SaaS platform that manages tools, users, and usage tracking.
+A comprehensive Django REST Framework project with JWT authentication and role-based authorization for a user management platform.
 
 ## Features
 
 - **JWT Authentication**: Secure token-based authentication
 - **Role-Based Access Control**: Three distinct user roles with specific permissions
-- **Tool Management**: Create, manage, and use tools with points system
-- **Usage Tracking**: Monitor tool usage and generate statistics
-- **Feedback System**: Users can rate and review tools
-- **API Key Management**: Secure API key generation and management
+- **User Management**: Create, manage, and track users with role-based access
+- **Points System**: Manage user points for service usage
+- **Revenue Tracking**: Monitor revenue and payouts for tool creators
 - **Admin Interface**: Comprehensive Django admin for all models
 
 ## User Roles & Permissions
 
-### 🔐 Platform-Specific Roles (Internal to SaaS)
+### 🔐 Platform-Specific Roles
 
 | Role | Permissions |
 |------|-------------|
-| **Client** | Browse tools, use tools (deduct points), view history, submit feedback |
-| **Tool Creator** | Submit tools, manage API keys, track usage/revenue, receive payouts |
-| **Admin** | Full access: manage users, tools, payouts, refunds, support, and site content |
+| **Client** | Browse content, use services (deduct points), view history, submit feedback |
+| **Tool Creator** | Manage API keys, track usage/revenue, receive payouts |
+| **Admin** | Full access: manage users, payouts, refunds, support, and site content |
 
 ## Installation & Setup
 
@@ -84,62 +83,40 @@ The API will be available at `http://localhost:8000/`
 | `/api/token/refresh/` | POST | Refresh JWT access token |
 | `/api/token/verify/` | POST | Verify JWT token |
 
+### User Registration
+
+| Endpoint | Method | Description | Permissions |
+|----------|--------|-------------|-------------|
+| `/api/users/register/client/` | POST | Register new client | Public |
+| `/api/users/register/tool-creator/` | POST | Register new tool creator | Public |
+| `/api/users/register/admin/` | POST | Register new admin | Admin only |
+
 ### User Management
 
 | Endpoint | Method | Description | Permissions |
 |----------|--------|-------------|-------------|
-| `/api/users/register/` | POST | Register new user | Public |
-| `/api/users/users/` | GET | List users | Admin only |
-| `/api/users/users/me/` | GET | Get current user profile | Authenticated |
-| `/api/users/users/update_me/` | PUT/PATCH | Update current user profile | Authenticated |
-| `/api/users/clients/` | GET | List all clients | Admin only |
-| `/api/users/tool-creators/` | GET | List all tool creators | Admin only |
-
-### Tool Management
-
-| Endpoint | Method | Description | Permissions |
-|----------|--------|-------------|-------------|
-| `/api/tools/tools/` | GET | List available tools | All authenticated |
-| `/api/tools/tools/` | POST | Create new tool | Tool Creator/Admin |
-| `/api/tools/tools/{id}/` | GET | Get tool details | All authenticated |
-| `/api/tools/tools/{id}/use/` | POST | Use a tool | All authenticated |
-| `/api/tools/tools/{id}/feedback/` | GET | Get tool feedback | All authenticated |
-| `/api/tools/tools/{id}/submit_feedback/` | POST | Submit tool feedback | All authenticated |
-| `/api/tools/tools/search/` | GET | Search tools | All authenticated |
-| `/api/tools/tools/my_tools/` | GET | Get user's created tools | Tool Creator |
-
-### Usage Tracking
-
-| Endpoint | Method | Description | Permissions |
-|----------|--------|-------------|-------------|
-| `/api/tools/usage/` | GET | List tool usage | Authenticated |
-| `/api/tools/usage/my_usage/` | GET | Get user's usage history | Authenticated |
-
-### API Keys
-
-| Endpoint | Method | Description | Permissions |
-|----------|--------|-------------|-------------|
-| `/api/tools/api-keys/` | GET | List API keys | Authenticated |
-| `/api/tools/api-keys/` | POST | Create API key | Authenticated |
-| `/api/tools/api-keys/{id}/regenerate/` | POST | Regenerate API key | Owner/Admin |
+| `/api/users/clients/` | GET | List clients | Admin only |
+| `/api/users/clients/points_balance/` | GET | Get client points balance | Client only |
+| `/api/users/tool-creators/` | GET | List tool creators | Admin only |
+| `/api/users/tool-creators/revenue_stats/` | GET | Get revenue statistics | Tool Creator only |
 
 ## Role-Based Access Control
 
 ### Client Role
-- **Browse tools**: View all active tools
-- **Use tools**: Consume points to use tools
-- **View history**: See their own usage history
-- **Submit feedback**: Rate and review tools they've used
+- **Browse content**: View available content
+- **Use services**: Consume points to use services
+- **View points balance**: Check their current points balance
+- **Submit feedback**: Rate and review services they've used
 
 ### Tool Creator Role
-- **Submit tools**: Create and manage their own tools
-- **Manage API keys**: Generate and manage API keys for their tools
-- **Track usage/revenue**: Monitor tool usage and revenue statistics
+- **Manage API keys**: Generate and manage API keys
+- **Track usage/revenue**: Monitor usage and revenue statistics
 - **Receive payouts**: Access payout information
+- **View revenue stats**: Check their revenue and payout data
 
 ### Admin Role
 - **Manage users**: Full user management capabilities
-- **Manage tools**: Approve, suspend, or modify any tool
+- **Manage content**: Approve, suspend, or modify any content
 - **Manage payouts**: Process payouts to tool creators
 - **Manage refunds**: Handle refund requests
 - **Manage support**: Access support ticket system
@@ -151,15 +128,9 @@ The API will be available at `http://localhost:8000/`
 - `User`: Custom user model with role-based permissions
 - `UserProfile`: Extended user profile information
 
-### Tool Models
-- `Tool`: Main tool model with metadata and statistics
-- `ToolUsage`: Track individual tool usage instances
-- `ToolFeedback`: User ratings and reviews for tools
-- `ToolApiKey`: API key management for tools
-
 ## Authentication Flow
 
-1. **Registration**: Users register with email/password (defaults to Client role)
+1. **Registration**: Users register with email/password for specific roles
 2. **Login**: Users authenticate and receive JWT tokens
 3. **Authorization**: Role-based permissions control access to endpoints
 4. **Token Refresh**: Automatic token refresh for long sessions
@@ -167,9 +138,9 @@ The API will be available at `http://localhost:8000/`
 ## Points System
 
 - **Clients** start with 0 points
-- **Points** are deducted when using tools
+- **Points** are deducted when using services
 - **Admins** can add/deduct points from clients
-- **Tool usage** costs are set by tool creators
+- **Service usage** costs are set by service providers
 
 ## Development
 
@@ -190,10 +161,9 @@ python manage.py migrate
 
 Access the Django admin at `http://localhost:8000/admin/` to manage:
 - Users and roles
-- Tools and their status
-- Usage tracking
-- Feedback and ratings
-- API keys
+- User profiles
+- Points management
+- Revenue tracking
 
 ## Production Deployment
 
@@ -216,18 +186,33 @@ DATABASE_URL=your-database-url
 
 ## API Examples
 
-### Register a User
+### Register a Client
 
 ```bash
-curl -X POST http://localhost:8000/api/users/register/ \
+curl -X POST http://localhost:8000/api/users/register/client/ \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "user@example.com",
-    "username": "testuser",
+    "email": "client@example.com",
+    "username": "clientuser",
     "password": "password123",
     "password_confirm": "password123",
     "first_name": "John",
     "last_name": "Doe"
+  }'
+```
+
+### Register a Tool Creator
+
+```bash
+curl -X POST http://localhost:8000/api/users/register/tool-creator/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "creator@example.com",
+    "username": "toolcreator",
+    "password": "password123",
+    "password_confirm": "password123",
+    "first_name": "Jane",
+    "last_name": "Smith"
   }'
 ```
 
@@ -242,25 +227,16 @@ curl -X POST http://localhost:8000/api/token/ \
   }'
 ```
 
-### Use a Tool
+### Get Client Points Balance
 
 ```bash
-curl -X POST http://localhost:8000/api/tools/tools/1/use/ \
-  -H "Authorization: Bearer <your-jwt-token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "input_data": {"text": "Hello world"}
-  }'
+curl -X GET http://localhost:8000/api/users/clients/points_balance/ \
+  -H "Authorization: Bearer <your-jwt-token>"
 ```
 
-## Contributing
+### Get Tool Creator Revenue Stats
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License. 
+```bash
+curl -X GET http://localhost:8000/api/users/tool-creators/revenue_stats/ \
+  -H "Authorization: Bearer <your-jwt-token>"
+``` 

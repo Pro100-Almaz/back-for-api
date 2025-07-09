@@ -8,9 +8,9 @@ class User(AbstractUser):
     Custom User model with role-based permissions.
     
     Roles:
-    - CLIENT: Browse tools, use tools (deduct points), view history, submit feedback
-    - TOOL_CREATOR: Submit tools, manage API keys, track usage/revenue, receive payouts
-    - ADMIN: Full access: manage users, tools, payouts, refunds, support, and site content
+    - CLIENT: Browse content, view history, submit feedback
+    - TOOL_CREATOR: Manage API keys, track usage/revenue, receive payouts
+    - ADMIN: Full access: manage users, payouts, refunds, support, and site content
     """
     
     class Role(models.TextChoices):
@@ -34,7 +34,7 @@ class User(AbstractUser):
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     
     # Points system for clients
-    points_balance = models.PositiveIntegerField(default=0, help_text=_('Available points for tool usage'))
+    points_balance = models.PositiveIntegerField(default=0, help_text=_('Available points for usage'))
     
     # Tool creator specific fields
     api_key = models.CharField(max_length=255, blank=True, null=True, help_text=_('API key for tool creators'))
@@ -69,18 +69,18 @@ class User(AbstractUser):
     def is_admin(self):
         return self.role == self.Role.ADMIN
     
-    def can_browse_tools(self):
-        """Check if user can browse tools (all roles can)"""
+    def can_browse_content(self):
+        """Check if user can browse content (all roles can)"""
         return True
     
-    def can_use_tools(self):
-        """Check if user can use tools (clients need points)"""
+    def can_use_services(self):
+        """Check if user can use services (clients need points)"""
         if self.is_client:
             return self.points_balance > 0
         return True
     
-    def can_submit_tools(self):
-        """Check if user can submit tools"""
+    def can_submit_content(self):
+        """Check if user can submit content"""
         return self.is_tool_creator or self.is_admin
     
     def can_manage_api_keys(self):
@@ -99,8 +99,8 @@ class User(AbstractUser):
         """Check if user can manage other users"""
         return self.is_admin
     
-    def can_manage_tools(self):
-        """Check if user can manage tools"""
+    def can_manage_content(self):
+        """Check if user can manage content"""
         return self.is_admin
     
     def can_manage_payouts(self):

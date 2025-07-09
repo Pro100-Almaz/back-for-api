@@ -53,25 +53,25 @@ class IsOwnerOrAdmin(permissions.BasePermission):
         return False
 
 
-class CanBrowseTools(permissions.BasePermission):
-    """Permission to check if user can browse tools"""
+class CanBrowseContent(permissions.BasePermission):
+    """Permission to check if user can browse content"""
     
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.can_browse_tools()
+        return request.user.is_authenticated and request.user.can_browse_content()
 
 
-class CanUseTools(permissions.BasePermission):
-    """Permission to check if user can use tools"""
+class CanUseServices(permissions.BasePermission):
+    """Permission to check if user can use services"""
     
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.can_use_tools()
+        return request.user.is_authenticated and request.user.can_use_services()
 
 
-class CanSubmitTools(permissions.BasePermission):
-    """Permission to check if user can submit tools"""
+class CanSubmitContent(permissions.BasePermission):
+    """Permission to check if user can submit content"""
     
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.can_submit_tools()
+        return request.user.is_authenticated and request.user.can_submit_content()
 
 
 class CanManageApiKeys(permissions.BasePermission):
@@ -102,11 +102,11 @@ class CanManageUsers(permissions.BasePermission):
         return request.user.is_authenticated and request.user.can_manage_users()
 
 
-class CanManageTools(permissions.BasePermission):
-    """Permission to check if user can manage tools"""
+class CanManageContent(permissions.BasePermission):
+    """Permission to check if user can manage content"""
     
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.can_manage_tools()
+        return request.user.is_authenticated and request.user.can_manage_content()
 
 
 class CanManagePayouts(permissions.BasePermission):
