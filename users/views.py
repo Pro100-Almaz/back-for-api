@@ -2,14 +2,16 @@ from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample
 
 from .serializers import (
-    ToolCreatorSerializer, ClientSerializer,
+    ToolCreatorSerializer, ClientSerializer, UserSerializer, AvatarUploadSerializer,
     ClientRegistrationSerializer, ToolCreatorRegistrationSerializer, AdminRegistrationSerializer
 )
 from .permissions import IsToolCreator, IsClient, IsAdmin
+from .models import UserProfile
 
 User = get_user_model()
 
@@ -42,6 +44,43 @@ class ClientRegistrationView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = ClientRegistrationSerializer
     permission_classes = [AllowAny]
+
+
+@extend_schema_view(
+    get=extend_schema(
+        summary="Get current user details",
+        description="Get detailed information about the currently authenticated user",
+        tags=["User Profile"]
+    ),
+    put=extend_schema(
+        summary="Update current user details",
+        description="Update all fields of the current user",
+        tags=["User Profile"]
+    ),
+    patch=extend_schema(
+        summary="Partially update current user details",
+        description="Update some fields of the current user",
+        tags=["User Profile"]
+    ),
+)
+class UserDetailView(generics.RetrieveUpdateAPIView):
+    """View for getting and updating current user details"""
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_object(self):
+        return self.request.user
+
+
+class UserAvatarUploadView(generics.UpdateAPIView):
+    serializer_class = AvatarUploadSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_object(self):
+        user = self.request.user
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        return profile
 
 
 @extend_schema_view(

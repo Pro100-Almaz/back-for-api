@@ -9,6 +9,7 @@ from rest_framework_simplejwt.views import (
 )
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     
@@ -19,7 +20,9 @@ urlpatterns = [
     
     # API endpoints
     path('api/users/', include('users.urls')),
-    
+    path('api/balance/', include('balance.urls')),
+    path('api/feedback/', include('feedback.urls')),
+
     # Swagger/OpenAPI documentation
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),

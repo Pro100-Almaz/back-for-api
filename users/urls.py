@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    ToolCreatorViewSet, ClientViewSet,
+    ToolCreatorViewSet, ClientViewSet, UserDetailView, UserAvatarUploadView,
     ClientRegistrationView, ToolCreatorRegistrationView, AdminRegistrationView
 )
 
@@ -10,11 +10,12 @@ router.register(r'tool-creators', ToolCreatorViewSet, basename='tool-creator')
 router.register(r'clients', ClientViewSet, basename='client')
 
 urlpatterns = [
-    # Registration endpoints
+    path('me/', UserDetailView.as_view(), name='user-detail'),
+    path('profile/avatar/', UserAvatarUploadView.as_view(), name='profile-avatar-upload'),
+
     path('register/client/', ClientRegistrationView.as_view(), name='client-register'),
     path('register/tool-creator/', ToolCreatorRegistrationView.as_view(), name='tool-creator-register'),
     path('register/admin/', AdminRegistrationView.as_view(), name='admin-register'),
-    
-    # ViewSet endpoints
+
     path('', include(router.urls))
 ]

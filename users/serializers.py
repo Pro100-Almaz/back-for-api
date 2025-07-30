@@ -18,7 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'email', 'username', 'first_name', 'last_name', 'role',
-            'phone_number', 'company_name', 'bio', 'avatar', 'points_balance',
+            'phone_number', 'company_name', 'bio', 'points_balance',
             'api_key', 'total_revenue', 'total_payouts', 'profile',
             'created_at', 'updated_at'
         ]
@@ -264,4 +264,10 @@ class ClientSerializer(serializers.ModelSerializer):
             'id', 'email', 'username', 'first_name', 'last_name',
             'points_balance', 'created_at'
         ]
-        read_only_fields = ['id', 'created_at'] 
+        read_only_fields = ['id', 'created_at']
+
+
+class AvatarUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['avatar']

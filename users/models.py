@@ -3,6 +3,9 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
+def user_avatar_upload_path(instance, filename):
+    return f"avatars/user_{instance.user.id}/{filename}"
+
 class User(AbstractUser):
     """
     Custom User model with role-based permissions.
@@ -31,7 +34,6 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     company_name = models.CharField(max_length=100, blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     
     # Points system for clients
     points_balance = models.PositiveIntegerField(default=0, help_text=_('Available points for usage'))
@@ -123,6 +125,7 @@ class User(AbstractUser):
 class UserProfile(models.Model):
     """Extended user profile for additional information"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    avatar = models.ImageField(upload_to=user_avatar_upload_path, blank=True, null=True)
     
     # Additional profile fields
     website = models.URLField(blank=True, null=True)

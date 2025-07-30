@@ -31,6 +31,8 @@ INSTALLED_APPS = [
     
     # Local apps
     'users',
+    'balance',
+    'feedback'
 ]
 
 MIDDLEWARE = [
@@ -67,8 +69,12 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('POSTGRES_DB', default='your_db_name'),
+        'USER': config('POSTGRES_USER', default='your_db_user'),
+        'PASSWORD': config('POSTGRES_PASSWORD', default=''),
+        'HOST': config('POSTGRES_HOST', default='localhost'),
+        'PORT': config('POSTGRES_PORT', default='5432'),
     }
 }
 
