@@ -32,7 +32,8 @@ INSTALLED_APPS = [
     # Local apps
     'users',
     'balance',
-    'feedback'
+    'feedback',
+    'payments',
 ]
 
 MIDDLEWARE = [
@@ -192,4 +193,10 @@ SPECTACULAR_SETTINGS = {
     'REDOC_DIST': 'SIDECAR',
     'SWAGGER_UI_TITLE': 'Back For API - API Documentation',
     'REDOC_UI_TITLE': 'Back For API - API Documentation',
-} 
+}
+
+# Stripe settings
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+STRIPE_CURRENCY = 'usd' 
