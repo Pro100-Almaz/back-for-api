@@ -115,3 +115,43 @@ class PaymentWebhook(models.Model):
     
     def __str__(self):
         return f"Webhook {self.stripe_event_id} - {self.event_type}"
+
+
+class Subscription(models.Model):
+    """Stripe subscription state synced via webhooks"""
+
+    class SubscriptionStatus(models.TextChoices):
+        TRIALING = 'trialing', _('Trialing')
+        ACTIVE = 'active', _('Active')
+        PAST_DUE = 'past_due', _('Past Due')
+        CANCELED = 'canceled', _('Canceled')
+        UNPAID = 'unpaid', _('Unpaid')
+        INCOMPLETE = 'incomplete', _('Incomplete')
+        INCOMPLETE_EXPIRED = 'incomplete_expired', _('Incomplete Expired')
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='subscriptions')
+    stripe_customer_id = models.CharField(max_length=255, db_index=True)
+    stripe_subscription_id = models.CharField(max_length=255, unique=True)
+
+    status = models.CharField(max_length=30, choices=SubscriptionStatus.choices)
+    price_id = models.CharField(max_length=255, blank=True)
+    quantity = models.PositiveIntegerField(default=1)
+
+    current_period_start = models.DateTimeField(null=True, blank=True)
+    current_period_end = models.DateTimeField(null=True, blank=True)
+    trial_end = models.DateTimeField(null=True, blank=True)
+    cancel_at_period_end = models.BooleanField(default=False)
+    canceled_at = models.DateTimeField(null=True, blank=True)
+
+    metadata = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('subscription')
+        verbose_name_plural = _('subscriptions')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Subscription {self.stripe_subscription_id} - {self.user.email} - {self.status}"

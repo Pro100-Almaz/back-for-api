@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Payment, PaymentMethod, PaymentWebhook
+from .models import Payment, PaymentMethod, PaymentWebhook, Subscription
 
 
 @admin.register(Payment)
@@ -59,4 +59,16 @@ class PaymentWebhookAdmin(admin.ModelAdmin):
         'stripe_event_id', 'event_type', 'event_data',
         'created_at', 'processed_at'
     ]
+    ordering = ['-created_at']
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = [
+        'stripe_subscription_id', 'user', 'status', 'price_id',
+        'current_period_end', 'cancel_at_period_end', 'canceled_at', 'created_at'
+    ]
+    list_filter = ['status', 'cancel_at_period_end', 'created_at']
+    search_fields = ['user__email', 'stripe_subscription_id', 'stripe_customer_id', 'price_id']
+    readonly_fields = ['created_at', 'updated_at']
     ordering = ['-created_at']

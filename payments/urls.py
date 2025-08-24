@@ -2,11 +2,12 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     CreatePaymentIntentView, ConfirmPaymentView, PaymentMethodViewSet,
-    PaymentHistoryView, stripe_webhook
+    PaymentHistoryView, SubscriptionViewSet, create_checkout_session, stripe_webhook, success_payment
 )
 
 router = DefaultRouter()
 router.register(r'payment-methods', PaymentMethodViewSet, basename='payment-method')
+router.register(r'subscriptions', SubscriptionViewSet, basename='subscription')
 
 urlpatterns = [
     # Payment processing
@@ -15,6 +16,9 @@ urlpatterns = [
     
     # Payment history
     path('history/', PaymentHistoryView.as_view(), name='payment-history'),
+    path('create-checkout-session/', create_checkout_session, name='create-checkout-session'),
+    path('success', success_payment, name='success-payment'),
+
     
     # Stripe webhook
     path('webhook/', stripe_webhook, name='stripe-webhook'),

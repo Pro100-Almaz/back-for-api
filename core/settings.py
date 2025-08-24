@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'balance',
     'feedback',
     'payments',
+    'chat',
 ]
 
 MIDDLEWARE = [
@@ -200,3 +201,9 @@ STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='')
 STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
 STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
 STRIPE_CURRENCY = 'usd' 
+
+# OpenAI settings
+OPENAI_API_KEY = config('OPENAI_API_KEY', default='')
+OPENAI_MODEL = config('OPENAI_MODEL', default='gpt-4o-mini')
+OPENAI_TEMPERATURE = config('OPENAI_TEMPERATURE', default=0.2, cast=float)
+OPENAI_MAX_TOKENS = config('OPENAI_MAX_TOKENS', default=512, cast=int)

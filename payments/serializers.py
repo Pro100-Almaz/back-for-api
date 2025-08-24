@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Payment, PaymentMethod, PaymentWebhook
+from .models import Payment, PaymentMethod, PaymentWebhook, Subscription
 
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -80,3 +80,14 @@ class RefundPaymentSerializer(serializers.Serializer):
     payment_id = serializers.UUIDField()
     amount = serializers.DecimalField(max_digits=10, decimal_places=2, required=False)
     reason = serializers.CharField(max_length=500, required=False) 
+
+
+class SubscriptionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subscription
+        fields = [
+            'id', 'stripe_subscription_id', 'status', 'price_id', 'quantity',
+            'current_period_start', 'current_period_end', 'trial_end',
+            'cancel_at_period_end', 'canceled_at', 'created_at', 'updated_at'
+        ]
+        read_only_fields = fields
