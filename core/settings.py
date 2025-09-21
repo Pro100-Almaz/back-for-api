@@ -93,10 +93,10 @@ WSGI_APPLICATION = 'core.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('POSTGRES_DB', default='your_db_name'),
-        'USER': config('POSTGRES_USER', default='your_db_user'),
-        'PASSWORD': config('POSTGRES_PASSWORD', default=''),
-        'HOST': config('POSTGRES_HOST', default='localhost'),
+        'NAME': config('POSTGRES_DB', default='django_db'),
+        'USER': config('POSTGRES_USER', default='postgres'),
+        'PASSWORD': config('POSTGRES_PASSWORD'),  # Remove default='' to force env var usage; will raise error if missing
+        'HOST': config('POSTGRES_HOST', default='db'),  # Default to Docker service name
         'PORT': config('POSTGRES_PORT', default='5432'),
     }
 }
