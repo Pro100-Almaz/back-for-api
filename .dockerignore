@@ -1,8 +1,0 @@
-__pycache__/
-*.pyc
-venv/
-.env
-.git/
-media/
-staticfiles/
-.DS_Store
