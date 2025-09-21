@@ -10,7 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"  # Using 5433 to avoid conflict with local PostgreSQL
+      - "5434:5432"  # Using 5433 to avoid conflict with local PostgreSQL
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-django_user} -d ${POSTGRES_DB:-django_db}"]
       interval: 30s
