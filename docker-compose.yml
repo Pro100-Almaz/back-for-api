@@ -34,7 +34,7 @@ services:
 
       - COLLECTSTATIC=1
       - AUTO_MAKEMIGRATIONS=0
-      - MIGRATE_DATABASES="default"
+      - MIGRATE_DATABASES=default
 
       - REDIS_URL=redis://redis:6379/0
       - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
