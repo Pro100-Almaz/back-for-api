@@ -1,24 +1,4 @@
 services:
-  db:
-    image: postgres:15-alpine
-    container_name: django_postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-django_db}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_postgres_password}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5434:5432"  # Using 5434 to avoid conflict with local PostgreSQL
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-django_db}"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-    networks:
-      - django_network
-
   redis:
     image: redis:7-alpine
     container_name: django_redis
@@ -71,8 +51,6 @@ services:
 
 
 volumes:
-  postgres_data:
-    driver: local
   redis_data:
     driver: local
   static_volume:
