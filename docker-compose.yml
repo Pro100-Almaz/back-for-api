@@ -3,8 +3,6 @@ services:
     image: redis:7-alpine
     container_name: django_redis
     restart: unless-stopped
-    ports:
-      - "6380:6379"  # Using 6380 to avoid conflict with local Redis
     volumes:
       - redis_data:/data
     healthcheck:
@@ -12,17 +10,12 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-    networks:
-      - django_network
+    networks: [apps-net]
 
   web:
     build: .
     container_name: django_web
     restart: unless-stopped
-    command: >
-      sh -c "python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
       - ./staticfiles:/app/staticfiles
@@ -32,11 +25,17 @@ services:
     environment:
       - DEBUG=${DEBUG:-True}
       - SECRET_KEY=${SECRET_KEY:-django-insecure-change-me-in-production}
+
       - POSTGRES_DB=${POSTGRES_DB:-django_db}
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-secure_postgres_password}
-      - POSTGRES_HOST=${POSTGRES_HOST:-localhost}
-      - POSTGRES_PORT=5432
+      - POSTGRES_HOST= postgres
+      - POSTGRES_PORT= 5432
+
+      - COLLECTSTATIC= 1
+      - AUTO_MAKEMIGRATIONS= 0
+      - MIGRATE_DATABASES= "default"
+
       - REDIS_URL=redis://redis:6379/0
       - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
@@ -44,18 +43,14 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-    networks:
-      - django_network
+    networks: [apps-net]
 
 
 volumes:
   redis_data:
-    driver: local
   static_volume:
-    driver: local
   media_volume:
-    driver: local
 
 networks:
-  django_network:
-    driver: bridge
+  apps-net:
+    external: true

@@ -1,9 +1,12 @@
 #!/usr/bin/env sh
 set -e
 
+DB_HOST="${POSTGRES_HOST:-${DB_HOST:-}}"
+DB_PORT="${POSTGRES_PORT:-${DB_PORT:-5432}}"
+
 # Optional: wait for DB (uses DB_HOST/DB_PORT). Skips if DB_HOST is empty.
 if [ -n "${DB_HOST:-}" ]; then
-  echo "Waiting for DB at $DB_HOST:${DB_PORT:-5432} ..."
+  echo "Waiting for DB at $DB_HOST:${DB_PORT} ..."
   i=0
   until python - <<'PY'
 import os, socket, sys
