@@ -1,11 +1,18 @@
 #!/usr/bin/env sh
 set -e
 
+# Prefer POSTGRES_*; fall back to DB_*; then defaults
 DB_HOST="${POSTGRES_HOST:-${DB_HOST:-}}"
 DB_PORT="${POSTGRES_PORT:-${DB_PORT:-5432}}"
 
-# Optional: wait for DB (uses DB_HOST/DB_PORT). Skips if DB_HOST is empty.
-if [ -n "${DB_HOST:-}" ]; then
+# Trim accidental spaces
+DB_HOST="$(printf "%s" "$DB_HOST" | xargs)"
+DB_PORT="$(printf "%s" "$DB_PORT" | xargs)"
+
+# Make them visible to the Python process
+export DB_HOST DB_PORT
+
+if [ -n "${DB_HOST}" ]; then
   echo "Waiting for DB at $DB_HOST:${DB_PORT} ..."
   i=0
   until python - <<'PY'
