@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status, generics
+from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -70,6 +71,20 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
     
     def get_object(self):
         return self.request.user
+
+
+@extend_schema_view(
+    get=extend_schema(
+        summary="Get current user id",
+        description="Get user_id for current user",
+        tags=["User Profile"]
+    )
+)
+class CurrentUserIdView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return self.request.user.pk
 
 
 class UserAvatarUploadView(generics.UpdateAPIView):
