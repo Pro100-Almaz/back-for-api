@@ -21,14 +21,14 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lamb
 
 CSRF_TRUSTED_ORIGINS = config(
     'CSRF_TRUSTED_ORIGINS',
-    default='https://example.com,https://api.example.com,https://app.example.com,http://localhost:8001,http://127.0.0.1:8001',
+    default='http://localhost:8001,http://127.0.0.1:8001',
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
 
 # CORS (only if frontend origin is different, otherwise you can skip)
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='https://app.example.com,https://myapp.vercel.app,http://localhost:3000',
+    default='http://localhost:8001,http://127.0.0.1:8001,http://localhost:3000',
     cast=lambda v: [s.strip() for s in v.split(',')]
 )
 
@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # Third party apps
+    'whitenoise.runserver_nostatic',  # Add this before rest_framework if DEBUG=True
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
@@ -61,6 +62,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Add WhiteNoise after SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -136,6 +138,8 @@ STATICFILES_FINDERS = [
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
 ]
 
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 # Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -149,7 +153,7 @@ AUTH_USER_MODEL = 'users.User'
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'users.authentication.CustomJWTAuthentication',  # String path to avoid import
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -161,6 +165,14 @@ REST_FRAMEWORK = {
 
 # JWT settings
 from datetime import timedelta
+
+JWT_PRIVATE_KEY_PATH = os.getenv("JWT_PRIVATE_KEY_PATH", "/run/secrets/jwtRS256.key")
+JWT_PUBLIC_KEY_PATH  = os.getenv("JWT_PUBLIC_KEY_PATH",  "/run/secrets/jwtRS256.key.pub")
+
+PRIVATE_KEY = Path(JWT_PRIVATE_KEY_PATH).read_text()
+PUBLIC_KEY  = Path(JWT_PUBLIC_KEY_PATH).read_text()
+
+
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
@@ -168,11 +180,13 @@ SIMPLE_JWT = {
     'BLACKLIST_AFTER_ROTATION': True,
     'UPDATE_LAST_LOGIN': False,
 
-    'ALGORITHM': 'HS256',
-    'SIGNING_KEY': SECRET_KEY,
-    'VERIFYING_KEY': None,
-    'AUDIENCE': None,
-    'ISSUER': None,
+    "ALGORITHM": "RS256",
+    "SIGNING_KEY": PRIVATE_KEY,      # private PEM
+    "VERIFYING_KEY": PUBLIC_KEY,     # public PEM
+
+    # issuer/audience so FastAPI can verify strictly
+    "ISSUER": os.getenv("JWT_ISSUER", "django-auth"),
+    "AUDIENCE": os.getenv("JWT_AUDIENCE", "your-backend"),
 
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
@@ -185,7 +199,7 @@ SIMPLE_JWT = {
     'JTI_CLAIM': 'jti',
 
     'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
-    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=720),
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
 }
 

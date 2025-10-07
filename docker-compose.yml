@@ -20,6 +20,8 @@ services:
       - .:/app
       - ./staticfiles:/app/staticfiles
       - ./media:/app/media
+      - ./secrets/jwtRS256.key:/run/secrets/jwtRS256.key:ro
+      - ./secrets/jwtRS256.key.pub:/run/secrets/jwtRS256.key.pub:ro
     ports:
       - "8001:8000"  # Using 8001 to avoid conflict with FastAPI service
     environment:
@@ -40,6 +42,8 @@ services:
       - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - JWT_PRIVATE_KEY_PATH=${JWT_PRIVATE_KEY_PATH}
+      - JWT_PUBLIC_KEY_PATH=${JWT_PUBLIC_KEY_PATH}
     depends_on:
       redis:
         condition: service_healthy

@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import UserProfile
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 User = get_user_model()
 
@@ -271,3 +272,17 @@ class AvatarUploadSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['avatar']
+
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        # Add custom claims
+        token['role'] = user.role
+        token['is_admin'] = user.is_admin
+        token['is_tool_creator'] = user.is_tool_creator
+        token['is_client'] = user.is_client
+        token['email'] = user.email
+        token['username'] = user.username
+        return token
