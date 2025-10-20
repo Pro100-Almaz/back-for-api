@@ -1,7 +1,7 @@
 services:
   redis:
     image: redis:7-alpine
-    container_name: django_redis
+    container_name: monolith_redis
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -14,7 +14,7 @@ services:
 
   web:
     build: .
-    container_name: django_web
+    container_name: monolith_web
     restart: unless-stopped
     volumes:
       - .:/app

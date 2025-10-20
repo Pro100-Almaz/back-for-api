@@ -1,16 +1,21 @@
 # points/views.py
-from decimal import Decimal
-
-from rest_framework import viewsets, status
+from rest_framework import mixins, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import Wallet, Transaction
+from rest_framework.permissions import IsAuthenticated
+from .models import Wallet
 from .serializers import WalletSerializer, TransactionSerializer
 from .services import BalanceService
 
-class WalletViewSet(viewsets.ReadOnlyModelViewSet):
+class WalletViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = Wallet.objects.select_related('user')
     serializer_class = WalletSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def list(self, request, *args, **kwargs):
+        balance = BalanceService.get_balance(request.user)
+        return Response({"balance": str(balance)})
 
     @action(detail=False, methods=['post'])
     def deduct(self, request):
@@ -43,14 +48,3 @@ class WalletViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(TransactionSerializer(txn).data)
         except Exception as e:
             return Response({'error': 'Failed to refund balance'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    @action(detail=False, methods=['get'])
-    def balance(self, request):
-        """Get current user balance"""
-        try:
-            balance = BalanceService.get_balance(request.user)
-            return Response({'balance': balance})
-        except Exception as e:
-            return Response({'error': 'Failed to get balance'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
