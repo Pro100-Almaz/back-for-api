@@ -34,7 +34,7 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     company_name = models.CharField(max_length=100, blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
-    
+
     # Points system for clients
     points_balance = models.PositiveIntegerField(default=0, help_text=_('Available points for usage'))
     

@@ -14,10 +14,10 @@ urlpatterns = [
     path('me/', UserDetailView.as_view(), name='user-detail'),
     path('me/user_id/', CurrentUserIdView.as_view(), name='current-user-id'),
     path('profile/avatar/', UserAvatarUploadView.as_view(), name='profile-avatar-upload'),
-
     path('register/client/', ClientRegistrationView.as_view(), name='client-register'),
     path('register/tool-creator/', ToolCreatorRegistrationView.as_view(), name='tool-creator-register'),
     path('register/admin/', AdminRegistrationView.as_view(), name='admin-register'),
+
 
     path('', include(router.urls))
 ]

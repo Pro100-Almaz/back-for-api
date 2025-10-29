@@ -9,13 +9,12 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExam
 
 from .serializers import (
     ToolCreatorSerializer, ClientSerializer, UserSerializer, AvatarUploadSerializer,
-    ClientRegistrationSerializer, ToolCreatorRegistrationSerializer, AdminRegistrationSerializer
+    ClientRegistrationSerializer, ToolCreatorRegistrationSerializer, AdminRegistrationSerializer,
 )
 from .permissions import IsToolCreator, IsClient, IsAdmin
 from .models import UserProfile
 
 User = get_user_model()
-
 
 @extend_schema_view(
     post=extend_schema(
@@ -86,6 +85,14 @@ class CurrentUserIdView(APIView):
     def get(self, request):
         return self.request.user.pk
 
+
+@extend_schema_view(
+    get=extend_schema(
+        summary="Upload user avatar",
+        description="Upload user avatar",
+        tags=["User Profile"]
+    )
+)
 
 class UserAvatarUploadView(generics.UpdateAPIView):
     serializer_class = AvatarUploadSerializer
