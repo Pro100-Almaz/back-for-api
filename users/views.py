@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample
+from django.core.files.storage import default_storage as storage
 
 from .serializers import (
     ToolCreatorSerializer, ClientSerializer, UserSerializer, AvatarUploadSerializer,
@@ -100,9 +101,29 @@ class UserAvatarUploadView(generics.UpdateAPIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def get_object(self):
-        user = self.request.user
-        profile, created = UserProfile.objects.get_or_create(user=user)
+        profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
         return profile
+
+    def update(self, request, *args, **kwargs):
+        # partial update lets you send just the avatar field
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        # ensure file is saved and url is resolvable
+        instance.refresh_from_db()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # (optional) delete old avatar to avoid orphans
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        old = instance.avatar.name if instance.avatar else None
+        obj = serializer.save()
+        if old and old != obj.avatar.name:
+            try:
+                obj.avatar.storage.delete(old)
+            except Exception:
+                pass
 
 
 @extend_schema_view(

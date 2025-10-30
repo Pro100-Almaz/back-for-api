@@ -270,12 +270,33 @@ class ClientSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at']
 
-
 class AvatarUploadSerializer(serializers.ModelSerializer):
+    # write-only upload field
+    avatar = serializers.ImageField(write_only=True, required=True)
+    # read-only response fields
+    key = serializers.SerializerMethodField()
+    url = serializers.SerializerMethodField()
+
     class Meta:
         model = UserProfile
-        fields = ['avatar']
+        fields = ("avatar", "key", "url")
 
+    def get_key(self, obj):
+        f = getattr(obj, "avatar", None)
+        return f.name if f else None  # e.g. "avatars/user_4/169...png"
+
+    def get_url(self, obj):
+        f = getattr(obj, "avatar", None)
+        return f.url if f else None   # signed URL from django-storages
+
+    #simple validation
+    def validate_avatar(self, file):
+        max_mb = 5
+        if file.size > max_mb * 1024 * 1024:
+            raise serializers.ValidationError(f"Image too large (>{max_mb} MB).")
+        if not str(file.content_type).startswith("image/"):
+            raise serializers.ValidationError("Only image/* content types are allowed.")
+        return file
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
