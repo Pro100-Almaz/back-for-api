@@ -47,4 +47,4 @@ class UserAdmin(BaseUserAdmin):
         return qs.filter(id=request.user.id)
 
 
-admin.site.register(User, UserAdmin) 
+admin.site.register(User, UserAdmin)

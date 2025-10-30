@@ -6,7 +6,6 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample
-from django.core.files.storage import default_storage as storage
 
 from .serializers import (
     ToolCreatorSerializer, ClientSerializer, UserSerializer, AvatarUploadSerializer,
@@ -68,7 +67,7 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
     """View for getting and updating current user details"""
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_object(self):
         return self.request.user
 
@@ -207,23 +206,23 @@ class ToolCreatorViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for tool creator specific operations"""
     serializer_class = ToolCreatorSerializer
     permission_classes = [IsToolCreator]
-    
+
     def get_queryset(self):
         user = self.request.user
         if user.is_admin:
             return User.objects.filter(role=User.Role.TOOL_CREATOR)
         return User.objects.filter(id=user.id)
-    
+
     @action(detail=False, methods=['get'])
     def revenue_stats(self, request):
         """Get revenue statistics for tool creator"""
         user = request.user
         if not user.is_tool_creator:
             return Response(
-                {'error': 'Access denied'}, 
+                {'error': 'Access denied'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         data = {
             'total_revenue': float(user.total_revenue),
             'total_payouts': float(user.total_payouts),
@@ -253,25 +252,25 @@ class ClientViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for client specific operations"""
     serializer_class = ClientSerializer
     permission_classes = [IsClient]
-    
+
     def get_queryset(self):
         user = self.request.user
         if user.is_admin:
             return User.objects.filter(role=User.Role.CLIENT)
         return User.objects.filter(id=user.id)
-    
+
     @action(detail=False, methods=['get'])
     def points_balance(self, request):
         """Get current points balance"""
         user = request.user
         if not user.is_client:
             return Response(
-                {'error': 'Access denied'}, 
+                {'error': 'Access denied'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         data = {
             'points_balance': user.points_balance,
             'can_use_services': user.can_use_services(),
         }
-        return Response(data) 
+        return Response(data)
