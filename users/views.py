@@ -9,13 +9,12 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExam
 
 from .serializers import (
     ToolCreatorSerializer, ClientSerializer, UserSerializer, AvatarUploadSerializer,
-    ClientRegistrationSerializer, ToolCreatorRegistrationSerializer, AdminRegistrationSerializer
+    ClientRegistrationSerializer, ToolCreatorRegistrationSerializer, AdminRegistrationSerializer,
 )
 from .permissions import IsToolCreator, IsClient, IsAdmin
 from .models import UserProfile
 
 User = get_user_model()
-
 
 @extend_schema_view(
     post=extend_schema(
@@ -68,7 +67,7 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
     """View for getting and updating current user details"""
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_object(self):
         return self.request.user
 
@@ -87,15 +86,43 @@ class CurrentUserIdView(APIView):
         return self.request.user.pk
 
 
+@extend_schema_view(
+    get=extend_schema(
+        summary="Upload user avatar",
+        description="Upload user avatar",
+        tags=["User Profile"]
+    )
+)
+
 class UserAvatarUploadView(generics.UpdateAPIView):
     serializer_class = AvatarUploadSerializer
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
 
     def get_object(self):
-        user = self.request.user
-        profile, created = UserProfile.objects.get_or_create(user=user)
+        profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
         return profile
+
+    def update(self, request, *args, **kwargs):
+        # partial update lets you send just the avatar field
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        # ensure file is saved and url is resolvable
+        instance.refresh_from_db()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    # (optional) delete old avatar to avoid orphans
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        old = instance.avatar.name if instance.avatar else None
+        obj = serializer.save()
+        if old and old != obj.avatar.name:
+            try:
+                obj.avatar.storage.delete(old)
+            except Exception:
+                pass
 
 
 @extend_schema_view(
@@ -179,23 +206,23 @@ class ToolCreatorViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for tool creator specific operations"""
     serializer_class = ToolCreatorSerializer
     permission_classes = [IsToolCreator]
-    
+
     def get_queryset(self):
         user = self.request.user
         if user.is_admin:
             return User.objects.filter(role=User.Role.TOOL_CREATOR)
         return User.objects.filter(id=user.id)
-    
+
     @action(detail=False, methods=['get'])
     def revenue_stats(self, request):
         """Get revenue statistics for tool creator"""
         user = request.user
         if not user.is_tool_creator:
             return Response(
-                {'error': 'Access denied'}, 
+                {'error': 'Access denied'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         data = {
             'total_revenue': float(user.total_revenue),
             'total_payouts': float(user.total_payouts),
@@ -225,25 +252,25 @@ class ClientViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for client specific operations"""
     serializer_class = ClientSerializer
     permission_classes = [IsClient]
-    
+
     def get_queryset(self):
         user = self.request.user
         if user.is_admin:
             return User.objects.filter(role=User.Role.CLIENT)
         return User.objects.filter(id=user.id)
-    
+
     @action(detail=False, methods=['get'])
     def points_balance(self, request):
         """Get current points balance"""
         user = request.user
         if not user.is_client:
             return Response(
-                {'error': 'Access denied'}, 
+                {'error': 'Access denied'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         data = {
             'points_balance': user.points_balance,
             'can_use_services': user.can_use_services(),
         }
-        return Response(data) 
+        return Response(data)
