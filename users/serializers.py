@@ -334,11 +334,13 @@ class AvatarDetailSerializer(serializers.ModelSerializer):
         fields = ("id", "key", "url", "created_at")
 
     def get_url(self, obj):
-        # use storage.url if signed (AWS_QUERYSTRING_AUTH=True), else boto3 presign
-        try:
-            return default_storage.url(obj.key)
-        except Exception:
-            return presign_get(obj.key)
+        if not obj.avatar:
+            return None
+        # For S3 + AWS_QUERYSTRING_AUTH=True this is a signed URL (?X-Amz-...)
+        url = obj.avatar.url
+        # If you ever switch to local dev storage, make it absolute:
+        req = self.context.get("request")
+        return req.build_absolute_uri(url) if req and url.startswith("/") else url
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod

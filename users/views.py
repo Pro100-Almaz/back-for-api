@@ -129,6 +129,25 @@ class AvatarsListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Avatar.objects.filter(user=self.request.user).order_by("-created_at")
+
+class PublicUserAvatarView(generics.GenericAPIView):
+    """
+    GET /api/users/<int:user_id>/avatar/
+    Returns: { user, url } with a signed S3 URL or null if no avatar.
+    """
+    permission_classes = [permissions.AllowAny]
+    serializer_class = AvatarDetailSerializer
+
+    def get(self, request, user_id: int, *args, **kwargs):
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found"}, status=404)
+
+        av, _ = Avatar.objects.get_or_create(user=user)
+        data = self.get_serializer(av, context={"request": request}).data
+        return Response(data, status=200)
+
 #
 # class UserAvatarUploadView(generics.UpdateAPIView):
 #     serializer_class = AvatarUploadSerializer

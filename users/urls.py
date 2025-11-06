@@ -3,13 +3,12 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     ToolCreatorViewSet, ClientViewSet, UserDetailView,
     ClientRegistrationView, ToolCreatorRegistrationView, AdminRegistrationView,
-    CurrentUserIdView, AvatarCreateView, AvatarsListView
+    CurrentUserIdView, AvatarCreateView, AvatarsListView, PublicUserAvatarView
 )
 
 router = DefaultRouter()
 router.register(r'tool-creators', ToolCreatorViewSet, basename='tool-creator')
 router.register(r'clients', ClientViewSet, basename='client')
-
 urlpatterns = [
     path('me/', UserDetailView.as_view(), name='user-detail'),
     path('me/user_id/', CurrentUserIdView.as_view(), name='current-user-id'),
@@ -18,7 +17,9 @@ urlpatterns = [
     path('register/client/', ClientRegistrationView.as_view(), name='client-register'),
     path('register/tool-creator/', ToolCreatorRegistrationView.as_view(), name='tool-creator-register'),
     path('register/admin/', AdminRegistrationView.as_view(), name='admin-register'),
+    path('profile/avatar/<int:user_id>/', PublicUserAvatarView.as_view(), name="user-avatar-public"),
 
 
     path('', include(router.urls))
 ]
+

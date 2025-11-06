@@ -165,4 +165,4 @@ class Avatar(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.user_id}:{self.key}"
+        return f"{self.user_id}:{self.key if self.avatar else 'no-file'}"
