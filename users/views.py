@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, generics
+from rest_framework import viewsets, status, generics, permissions
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -8,11 +8,11 @@ from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample
 
 from .serializers import (
-    ToolCreatorSerializer, ClientSerializer, UserSerializer, AvatarUploadSerializer,
-    ClientRegistrationSerializer, ToolCreatorRegistrationSerializer, AdminRegistrationSerializer,
+    ToolCreatorSerializer, ClientSerializer, UserSerializer,
+    ClientRegistrationSerializer, ToolCreatorRegistrationSerializer, AdminRegistrationSerializer, AvatarCreateSerializer, AvatarDetailSerializer
 )
 from .permissions import IsToolCreator, IsClient, IsAdmin
-from .models import UserProfile
+from .models import Avatar
 
 User = get_user_model()
 
@@ -94,35 +94,71 @@ class CurrentUserIdView(APIView):
     )
 )
 
-class UserAvatarUploadView(generics.UpdateAPIView):
-    serializer_class = AvatarUploadSerializer
-    permission_classes = [IsAuthenticated]
+class AvatarCreateView(generics.CreateAPIView):
+    """
+    POST /api/users/avatar/
+      form-data: path=<desired S3 key>, image=@<file>
+    Returns: { key, url }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = AvatarCreateSerializer
     parser_classes = [MultiPartParser, FormParser]
 
-    def get_object(self):
-        profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
-        return profile
+    def create(self, request, *args, **kwargs):
+        ser = self.get_serializer(data=request.data, context={"request": request})
+        ser.is_valid(raise_exception=True)
+        payload = ser.save()
+        return Response(payload, status=201)
 
-    def update(self, request, *args, **kwargs):
-        # partial update lets you send just the avatar field
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        # ensure file is saved and url is resolvable
-        instance.refresh_from_db()
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    # (optional) delete old avatar to avoid orphans
-    def perform_update(self, serializer):
-        instance = self.get_object()
-        old = instance.avatar.name if instance.avatar else None
-        obj = serializer.save()
-        if old and old != obj.avatar.name:
-            try:
-                obj.avatar.storage.delete(old)
-            except Exception:
-                pass
+@extend_schema_view(
+    get=extend_schema(
+        summary="Get user avatar list",
+        description="Get user avatar list",
+        tags=["User Profile"]
+    )
+)
+
+class AvatarsListView(generics.ListAPIView):
+    """
+    GET /api/users/avatar/
+    Lists caller's avatars (keys + signed URLs).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = AvatarDetailSerializer
+
+    def get_queryset(self):
+        return Avatar.objects.filter(user=self.request.user).order_by("-created_at")
+#
+# class UserAvatarUploadView(generics.UpdateAPIView):
+#     serializer_class = AvatarUploadSerializer
+#     permission_classes = [IsAuthenticated]
+#     parser_classes = [MultiPartParser, FormParser]
+#
+#     def get_object(self):
+#         profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
+#         return profile
+#
+#     def update(self, request, *args, **kwargs):
+#         # partial update lets you send just the avatar field
+#         instance = self.get_object()
+#         serializer = self.get_serializer(instance, data=request.data, partial=True)
+#         serializer.is_valid(raise_exception=True)
+#         self.perform_update(serializer)
+#         # ensure file is saved and url is resolvable
+#         instance.refresh_from_db()
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+#
+#     # (optional) delete old avatar to avoid orphans
+#     def perform_update(self, serializer):
+#         instance = self.get_object()
+#         old = instance.avatar.name if instance.avatar else None
+#         obj = serializer.save()
+#         if old and old != obj.avatar.name:
+#             try:
+#                 obj.avatar.storage.delete(old)
+#             except Exception:
+#                 pass
 
 
 @extend_schema_view(

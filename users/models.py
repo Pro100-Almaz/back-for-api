@@ -37,7 +37,6 @@ class User(AbstractUser):
     # Profile fields
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     company_name = models.CharField(max_length=100, blank=True, null=True)
-    avatar = models.ImageField(upload_to=user_avatar_upload_path, blank=True, null=True)
     bio = models.TextField(blank=True, null=True)
 
     # Points system for clients
@@ -151,3 +150,19 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.email} Profile"
+
+
+class Avatar(models.Model):
+    """Extended user avatar for additional information"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='avatar')
+    key = models.CharField(max_length=512, blank=True, null=True)
+    avatar = models.ImageField(storage = avatar_storage, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "key"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user_id}:{self.key}"

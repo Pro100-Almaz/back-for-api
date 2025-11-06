@@ -1,7 +1,13 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import UserProfile
+from django.core.files.storage import default_storage
+from .models import UserProfile, Avatar
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.conf import settings
+import boto3
+
+from .models import Avatar
+from .validators import validate_user_avatar_key
 
 User = get_user_model()
 
@@ -270,33 +276,69 @@ class ClientSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at']
 
-class AvatarUploadSerializer(serializers.ModelSerializer):
-    # write-only upload field
-    avatar = serializers.ImageField(write_only=True, required=True)
-    # read-only response fields
-    key = serializers.SerializerMethodField()
+class AvatarCreateSerializer(serializers.Serializer):
+    path = serializers.CharField(write_only=True)         # desired key
+    avatar = serializers.ImageField(write_only=True)      # file bytes
+
+    key = serializers.CharField(read_only=True)
+    url = serializers.CharField(read_only=True)
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+
+        # path/key checks (ownership, no '..', has filename, allowed chars/ext, etc.)
+        try:
+            attrs["key"] = validate_user_avatar_key(user.id, attrs["path"])
+        except ValueError as e:
+            raise serializers.ValidationError({"path": str(e)})
+
+        f = attrs["avatar"]
+        if getattr(f, "size", 0) > 5 * 1024 * 1024:
+            raise serializers.ValidationError({"avatar": "Max size is 5 MB"})
+        if not str(getattr(f, "content_type", "")).startswith("image/"):
+            raise serializers.ValidationError({"avatar": "Only image/* content types are allowed"})
+        return attrs
+
+    def create(self, validated):
+        user = self.context["request"].user
+        key  = validated["key"]
+        file = validated["avatar"]
+
+        # optional overwrite flag
+        allow_overwrite = self.context["request"].query_params.get("overwrite") in {"1", "true", "True"}
+
+        # for OneToOne: update existing or create new
+        av, _created = Avatar.objects.get_or_create(user=user)
+
+        # if an object already exists at this key and overwrite not allowed → 400
+        if default_storage.exists(key) and not allow_overwrite:
+            raise serializers.ValidationError({"path": "Object already exists at this key. Use ?overwrite=true to replace."})
+        if allow_overwrite and default_storage.exists(key):
+            default_storage.delete(key)
+
+        # Save through the ImageField so DB + storage stay in sync
+        # name=<key> forces the exact storage path you validated
+        av.key = key
+        av.avatar.save(name=key, content=file, save=True)  # writes to storage & updates field name
+
+        # Build URL (S3: signed if AWS_QUERYSTRING_AUTH=True)
+        url = av.avatar.url
+
+        return {"key": av.avatar.name, "url": url}
+
+class AvatarDetailSerializer(serializers.ModelSerializer):
     url = serializers.SerializerMethodField()
 
     class Meta:
-        model = UserProfile
-        fields = ("avatar", "key", "url")
-
-    def get_key(self, obj):
-        f = getattr(obj, "avatar", None)
-        return f.name if f else None  # e.g. "avatars/user_4/169...png"
+        model = Avatar
+        fields = ("id", "key", "url", "created_at")
 
     def get_url(self, obj):
-        f = getattr(obj, "avatar", None)
-        return f.url if f else None   # signed URL from django-storages
-
-    #simple validation
-    def validate_avatar(self, file):
-        max_mb = 5
-        if file.size > max_mb * 1024 * 1024:
-            raise serializers.ValidationError(f"Image too large (>{max_mb} MB).")
-        if not str(file.content_type).startswith("image/"):
-            raise serializers.ValidationError("Only image/* content types are allowed.")
-        return file
+        # use storage.url if signed (AWS_QUERYSTRING_AUTH=True), else boto3 presign
+        try:
+            return default_storage.url(obj.key)
+        except Exception:
+            return presign_get(obj.key)
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
