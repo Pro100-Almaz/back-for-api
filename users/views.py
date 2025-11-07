@@ -40,7 +40,9 @@ User = get_user_model()
     )
 )
 class ClientRegistrationView(generics.CreateAPIView):
-    """View for client registration"""
+    """
+    View for client registration
+    """
     queryset = User.objects.all()
     serializer_class = ClientRegistrationSerializer
     permission_classes = [AllowAny]
@@ -64,7 +66,9 @@ class ClientRegistrationView(generics.CreateAPIView):
     ),
 )
 class UserDetailView(generics.RetrieveUpdateAPIView):
-    """View for getting and updating current user details"""
+    """
+    View for getting and updating current user details
+    """
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
 
@@ -147,37 +151,6 @@ class PublicUserAvatarView(generics.GenericAPIView):
         av, _ = Avatar.objects.get_or_create(user=user)
         data = self.get_serializer(av, context={"request": request}).data
         return Response(data, status=200)
-
-#
-# class UserAvatarUploadView(generics.UpdateAPIView):
-#     serializer_class = AvatarUploadSerializer
-#     permission_classes = [IsAuthenticated]
-#     parser_classes = [MultiPartParser, FormParser]
-#
-#     def get_object(self):
-#         profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
-#         return profile
-#
-#     def update(self, request, *args, **kwargs):
-#         # partial update lets you send just the avatar field
-#         instance = self.get_object()
-#         serializer = self.get_serializer(instance, data=request.data, partial=True)
-#         serializer.is_valid(raise_exception=True)
-#         self.perform_update(serializer)
-#         # ensure file is saved and url is resolvable
-#         instance.refresh_from_db()
-#         return Response(serializer.data, status=status.HTTP_200_OK)
-#
-#     # (optional) delete old avatar to avoid orphans
-#     def perform_update(self, serializer):
-#         instance = self.get_object()
-#         old = instance.avatar.name if instance.avatar else None
-#         obj = serializer.save()
-#         if old and old != obj.avatar.name:
-#             try:
-#                 obj.avatar.storage.delete(old)
-#             except Exception:
-#                 pass
 
 
 @extend_schema_view(
