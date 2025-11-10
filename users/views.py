@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, generics
+from rest_framework import viewsets, status, generics, permissions
 from rest_framework.views import APIView
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -8,14 +8,13 @@ from django.contrib.auth import get_user_model
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample
 
 from .serializers import (
-    ToolCreatorSerializer, ClientSerializer, UserSerializer, AvatarUploadSerializer,
-    ClientRegistrationSerializer, ToolCreatorRegistrationSerializer, AdminRegistrationSerializer
+    ToolCreatorSerializer, ClientSerializer, UserSerializer,
+    ClientRegistrationSerializer, ToolCreatorRegistrationSerializer, AdminRegistrationSerializer, AvatarCreateSerializer, AvatarDetailSerializer
 )
 from .permissions import IsToolCreator, IsClient, IsAdmin
-from .models import UserProfile
+from .models import Avatar
 
 User = get_user_model()
-
 
 @extend_schema_view(
     post=extend_schema(
@@ -41,7 +40,9 @@ User = get_user_model()
     )
 )
 class ClientRegistrationView(generics.CreateAPIView):
-    """View for client registration"""
+    """
+    View for client registration
+    """
     queryset = User.objects.all()
     serializer_class = ClientRegistrationSerializer
     permission_classes = [AllowAny]
@@ -65,10 +66,12 @@ class ClientRegistrationView(generics.CreateAPIView):
     ),
 )
 class UserDetailView(generics.RetrieveUpdateAPIView):
-    """View for getting and updating current user details"""
+    """
+    View for getting and updating current user details
+    """
     serializer_class = UserSerializer
     permission_classes = [IsAuthenticated]
-    
+
     def get_object(self):
         return self.request.user
 
@@ -87,15 +90,67 @@ class CurrentUserIdView(APIView):
         return self.request.user.pk
 
 
-class UserAvatarUploadView(generics.UpdateAPIView):
-    serializer_class = AvatarUploadSerializer
-    permission_classes = [IsAuthenticated]
+@extend_schema_view(
+    get=extend_schema(
+        summary="Upload user avatar",
+        description="Upload user avatar",
+        tags=["User Profile"]
+    )
+)
+
+class AvatarCreateView(generics.CreateAPIView):
+    """
+    POST /api/users/avatar/
+      form-data: path=<desired S3 key>, image=@<file>
+    Returns: { key, url }
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = AvatarCreateSerializer
     parser_classes = [MultiPartParser, FormParser]
 
-    def get_object(self):
-        user = self.request.user
-        profile, created = UserProfile.objects.get_or_create(user=user)
-        return profile
+    def create(self, request, *args, **kwargs):
+        ser = self.get_serializer(data=request.data, context={"request": request})
+        ser.is_valid(raise_exception=True)
+        payload = ser.save()
+        return Response(payload, status=201)
+
+
+@extend_schema_view(
+    get=extend_schema(
+        summary="Get user avatar list",
+        description="Get user avatar list",
+        tags=["User Profile"]
+    )
+)
+
+class AvatarsListView(generics.ListAPIView):
+    """
+    GET /api/users/avatar/
+    Lists caller's avatars (keys + signed URLs).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = AvatarDetailSerializer
+
+    def get_queryset(self):
+        return Avatar.objects.filter(user=self.request.user).order_by("-created_at")
+
+class PublicUserAvatarView(generics.GenericAPIView):
+    """
+    GET /api/users/<int:user_id>/avatar/
+    Returns: { user, url } with a signed S3 URL or null if no avatar.
+    """
+    permission_classes = [permissions.AllowAny]
+    serializer_class = AvatarDetailSerializer
+
+    def get(self, request, user_id: int, *args, **kwargs):
+        try:
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found"}, status=404)
+
+        av, _ = Avatar.objects.get_or_create(user=user)
+        data = self.get_serializer(av, context={"request": request}).data
+        return Response(data, status=200)
 
 
 @extend_schema_view(
@@ -179,23 +234,23 @@ class ToolCreatorViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for tool creator specific operations"""
     serializer_class = ToolCreatorSerializer
     permission_classes = [IsToolCreator]
-    
+
     def get_queryset(self):
         user = self.request.user
         if user.is_admin:
             return User.objects.filter(role=User.Role.TOOL_CREATOR)
         return User.objects.filter(id=user.id)
-    
+
     @action(detail=False, methods=['get'])
     def revenue_stats(self, request):
         """Get revenue statistics for tool creator"""
         user = request.user
         if not user.is_tool_creator:
             return Response(
-                {'error': 'Access denied'}, 
+                {'error': 'Access denied'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         data = {
             'total_revenue': float(user.total_revenue),
             'total_payouts': float(user.total_payouts),
@@ -225,25 +280,25 @@ class ClientViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet for client specific operations"""
     serializer_class = ClientSerializer
     permission_classes = [IsClient]
-    
+
     def get_queryset(self):
         user = self.request.user
         if user.is_admin:
             return User.objects.filter(role=User.Role.CLIENT)
         return User.objects.filter(id=user.id)
-    
+
     @action(detail=False, methods=['get'])
     def points_balance(self, request):
         """Get current points balance"""
         user = request.user
         if not user.is_client:
             return Response(
-                {'error': 'Access denied'}, 
+                {'error': 'Access denied'},
                 status=status.HTTP_403_FORBIDDEN
             )
-        
+
         data = {
             'points_balance': user.points_balance,
             'can_use_services': user.can_use_services(),
         }
-        return Response(data) 
+        return Response(data)
