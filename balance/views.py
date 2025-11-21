@@ -19,7 +19,7 @@ class WalletViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     @action(detail=False, methods=['post'])
     def deduct(self, request):
-        try:
+        try:#request key is incorrect
             amount = request.data.get('amount')
             reference = request.data.get('ref', '')
             
@@ -29,7 +29,7 @@ class WalletViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 reference=reference
             )
             return Response(TransactionSerializer(txn).data)
-        except ValueError as e:
+        except ValueError as e:#we never return true/false depending on the deduction
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({'error': 'Failed to deduct balance'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

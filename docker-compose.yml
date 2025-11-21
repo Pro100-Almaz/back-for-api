@@ -15,6 +15,7 @@ services:
   web:
     build: .
     container_name: monolith_web
+    hostname: monolith-web
     restart: unless-stopped
     volumes:
       - .:/app
